@@ -1,13 +1,20 @@
 import styled from "@emotion/styled";
+import { keyframes } from "@emotion/react";
 import { useCallback, useEffect, useState } from "react";
 import { MdDeleteOutline } from "react-icons/md";
 
-import { Row } from "./components/Components";
-import ResizableTextarea from "./components/ResizableTextarea";
+import { DeleteButton, Row } from "./components/Components";
 import Navigation from "./components/Navigation";
+import ResizableTextarea from "./components/ResizableTextarea";
 import Settings from "./components/Settings";
+import Top from "./components/Top";
 import { fetchGPT } from "./lib/api";
-import { keyframes } from "@emotion/react";
+import {
+  getInitialPrompt,
+  loadPrompts,
+  Prompt,
+  PROMPTS_KEY,
+} from "./lib/prompt";
 
 const Wrapper = styled.div`
   width: calc(900px + 150px + 32px);
@@ -24,7 +31,6 @@ const Content = styled.div`
   gap: 24px;
 `;
 
-// content
 const ContentWrapper = styled.div`
   display: flex;
   flex-direction: column;
@@ -51,23 +57,6 @@ const ContentColumn = styled.div`
   }
 `;
 
-const DeleteButton = styled.button`
-  width: 1em;
-  height: 1em;
-  line-height: 1;
-  color: #fff;
-  font-size: 20px;
-  padding: 4px;
-  border: solid 1px #c00;
-  box-sizing: content-box;
-  border-radius: 12px;
-  cursor: pointer;
-  background: #c00;
-  position: absolute;
-  bottom: 0;
-  right: calc(-1em - 8px - 12px);
-`;
-
 const ImplementRow = styled(Row)`
   display: flex;
   justify-content: flex-end;
@@ -88,29 +77,34 @@ const ImplementButton = styled.button<{ primary: boolean }>`
 `;
 
 const App = () => {
-  const [prompts, setPrompts] = useState<string[]>([""]);
-  const [promptIndex, setPromptIndex] = useState<number>(0);
+  const [prompts, setPrompts] = useState<Prompt[]>(loadPrompts());
+  const [promptIndex, setPromptIndex] = useState(0);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("gpt-4o-mini");
   const [contents, setContents] = useState<string[]>([""]);
   const [responses, setResponses] = useState<string[]>([""]);
   const [fetchedIndex, setFetchedIndex] = useState(100);
 
-  const PROMPTS_KEY = "prompts";
-
-  const prompt = prompts[promptIndex];
+  const prompt = prompts[promptIndex] ?? getInitialPrompt();
 
   // プロンプト
-  const updatePropmt = (content: string) => {
-    const newPrompts = prompts.map((item, i) =>
-      i === promptIndex ? content : item
-    );
-    setPrompts(newPrompts);
-    localStorage.setItem(PROMPTS_KEY, JSON.stringify(newPrompts));
-  };
+  const updatePropmt = useCallback(
+    ({ content, combined }: Partial<Prompt>) => {
+      const newPrompts = structuredClone(prompts);
+      if (content !== undefined) {
+        newPrompts[promptIndex].content = content;
+      }
+      if (combined !== undefined) {
+        newPrompts[promptIndex].combined = combined;
+      }
+      setPrompts(newPrompts);
+      localStorage.setItem(PROMPTS_KEY, JSON.stringify(newPrompts));
+    },
+    [promptIndex, prompts]
+  );
 
   const addPrompt = () => {
-    const newPrompts = [...prompts, ""];
+    const newPrompts = [...prompts, getInitialPrompt()];
     setPrompts(newPrompts);
     localStorage.setItem(PROMPTS_KEY, JSON.stringify(newPrompts));
     updatePromptIndex(newPrompts.length - 1);
@@ -198,20 +192,10 @@ const App = () => {
   }, [prompt, contents, model, apiKey]);
 
   useEffect(() => {
-    // プロンプトを読み込み
-    try {
-      const prompts = JSON.parse(localStorage.getItem(PROMPTS_KEY) ?? "[]");
-      if (prompts.length) {
-        setPrompts(prompts);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
     const queryString = window.location.search;
     const params = new URLSearchParams(queryString);
     const tempPromptIndex = params.get("prompt");
-    if (tempPromptIndex) {
+    if (tempPromptIndex !== null) {
       setPromptIndex(parseInt(tempPromptIndex));
     }
   }, []);
@@ -226,15 +210,11 @@ const App = () => {
       />
       <Content>
         <Row>
-          <ResizableTextarea
-            content={prompt}
-            placeholder="プロンプトを入力．一度入力したプロンプトは保存され，左のメニューから選択できます．"
-            minLh={2}
-            setContent={updatePropmt}
+          <Top
+            prompt={prompt}
+            updatePropmt={updatePropmt}
+            deletePrompt={deletePrompt}
           />
-          <DeleteButton onClick={deletePrompt}>
-            <MdDeleteOutline />
-          </DeleteButton>
         </Row>
         <ContentWrapper>
           {contents.map((content, i) => (

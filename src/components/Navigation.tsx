@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { Prompt } from "../lib/prompt";
 
 const Wrapper = styled.nav`
   height: calc(100vh - 64px);
@@ -10,7 +11,7 @@ const Wrapper = styled.nav`
   overflow-y: scroll;
 `;
 
-const Prompt = styled.div<{ center?: boolean }>`
+const PromptItem = styled.div<{ center?: boolean }>`
   min-height: 1lh;
   line-height: 1.2;
   text-align: ${({ center }) => (center ? "center" : "left")};
@@ -32,7 +33,7 @@ const Prompt = styled.div<{ center?: boolean }>`
 `;
 
 interface NavigationProps {
-  prompts: string[];
+  prompts: Prompt[];
   promptIndex: number;
   updatePromptIndex: (index: number) => void;
   addPrompt: () => void;
@@ -47,17 +48,17 @@ const Navigation = ({
   return (
     <Wrapper>
       {prompts.map((prompt, i) => (
-        <Prompt
+        <PromptItem
           data-selected={promptIndex === i}
-          key={prompt}
+          key={i}
           onClick={() => updatePromptIndex(i)}
         >
-          {prompt.split("\n")[0]}
-        </Prompt>
+          {prompt.content.split("\n")[0]}
+        </PromptItem>
       ))}
-      <Prompt center={true} onClick={addPrompt}>
+      <PromptItem center={true} onClick={addPrompt}>
         ＋
-      </Prompt>
+      </PromptItem>
     </Wrapper>
   );
 };

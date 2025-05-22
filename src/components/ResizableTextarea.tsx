@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 
 const Wrapper = styled.div`
   max-width: 100%;
@@ -59,11 +59,14 @@ const ResizableTextarea = ({
 }: ResizableTextareaProps) => {
   const dummyRef = useRef<HTMLDivElement>(null);
 
-  const onInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (dummyRef.current && setContent) {
-      setContent(e.target.value);
-    }
-  };
+  const onInput = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (dummyRef.current && setContent) {
+        setContent(e.target.value);
+      }
+    },
+    [setContent]
+  );
 
   return (
     <Wrapper>
